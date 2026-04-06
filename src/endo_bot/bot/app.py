@@ -22,8 +22,19 @@ dispatcher = Dispatcher()
 
 
 def main_menu() -> InlineKeyboardMarkup:
+    mode_icons = {
+        "new_case": "🩺",
+        "resume_case": "📂",
+        "endoscopy_only": "🔬",
+        "quick_reference": "📘",
+    }
     buttons = [
-        [InlineKeyboardButton(text=mode["title"], callback_data=f"mode:{mode['id']}")]
+        [
+            InlineKeyboardButton(
+                text=f"{mode_icons.get(mode['id'], '•')} {mode['title']}",
+                callback_data=f"mode:{mode['id']}",
+            )
+        ]
         for mode in spec.modes
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -32,10 +43,10 @@ def main_menu() -> InlineKeyboardMarkup:
 def post_result_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="Новый кейс", callback_data="mode:new_case")],
-            [InlineKeyboardButton(text="Ввести данные ЭГДС", callback_data="mode:endoscopy_only")],
-            [InlineKeyboardButton(text="Краткий алгоритм", callback_data="mode:quick_reference")],
-            [InlineKeyboardButton(text="Главное меню", callback_data="nav:menu")],
+            [InlineKeyboardButton(text="🩺 Новый кейс", callback_data="mode:new_case")],
+            [InlineKeyboardButton(text="🔬 Ввести данные ЭГДС", callback_data="mode:endoscopy_only")],
+            [InlineKeyboardButton(text="📘 Краткий алгоритм", callback_data="mode:quick_reference")],
+            [InlineKeyboardButton(text="🏠 Главное меню", callback_data="nav:menu")],
         ]
     )
 
@@ -47,8 +58,8 @@ def question_keyboard(question: dict) -> InlineKeyboardMarkup:
     ]
     rows.append(
         [
-            InlineKeyboardButton(text="Назад", callback_data="nav:back"),
-            InlineKeyboardButton(text="В меню", callback_data="nav:menu"),
+            InlineKeyboardButton(text="⬅️ Назад", callback_data="nav:back"),
+            InlineKeyboardButton(text="🏠 В меню", callback_data="nav:menu"),
         ]
     )
     return InlineKeyboardMarkup(inline_keyboard=rows)
@@ -81,13 +92,14 @@ def next_question(session: CaseSession) -> dict | None:
 @dispatcher.message(Command("start"))
 async def start(message: Message) -> None:
     await message.answer(
-        "Эндо-Бот помогает эндоскописту быстро пройти структурированный алгоритм триажа.\n\n"
+        "🩺 Эндо-Бот\n"
+        "Помощник для эндоскописта в сложном клиническом сценарии.\n\n"
         "Что умеет бот:\n"
         "• провести по пошаговому сценарию\n"
-        "• выделить срочность случая\n"
-        "• показать вероятный источник кровотечения\n"
-        "• подсказать следующий шаг\n\n"
-        "Важно: бот не заменяет клиническое решение врача.",
+        "• оценить срочность ситуации\n"
+        "• подсказать вероятный источник кровотечения\n"
+        "• показать следующий шаг\n\n"
+        "⚠️ Бот не заменяет клиническое решение врача.",
         reply_markup=main_menu(),
     )
 
@@ -97,7 +109,7 @@ async def choose_mode(callback: CallbackQuery) -> None:
     mode = callback.data.split(":", 1)[1]
     if mode == "quick_reference":
         await callback.message.answer(
-            "Краткая логика работы бота:\n\n"
+            "📘 Краткая логика работы бота\n\n"
             "1. Сначала оценивается экстренность.\n"
             "2. Затем собираются признаки портальной гипертензии.\n"
             "3. После этого бот сопоставляет варикозные и неварикозные признаки.\n"
@@ -158,9 +170,9 @@ async def send_next_question(message: Message, session: CaseSession) -> None:
     question_ids = visible_question_ids(session)
     current_step = len([question_id for question_id in question_ids if question_id in session.answers]) + 1
     total_steps = len(question_ids)
-    progress_line = f"Шаг {current_step} из {total_steps}"
+    progress_line = f"🧭 Шаг {current_step} из {total_steps}"
     hint = question.get("hint")
-    hint_block = f"\n\nПочему это важно: {hint}" if hint else ""
+    hint_block = f"\n\n💡 Почему это важно:\n{hint}" if hint else ""
     text = f"{progress_line}\n\n{question['prompt']}{hint_block}"
     await message.answer(text, reply_markup=question_keyboard(question))
 
@@ -187,7 +199,7 @@ async def process_answer(callback: CallbackQuery) -> None:
 
 @dispatcher.callback_query(F.data == "nav:menu")
 async def return_to_menu(callback: CallbackQuery) -> None:
-    await callback.message.answer("Главное меню:", reply_markup=main_menu())
+    await callback.message.answer("🏠 Главное меню:", reply_markup=main_menu())
     await callback.answer()
 
 
@@ -201,7 +213,7 @@ async def go_back(callback: CallbackQuery) -> None:
 
     answered_visible = [question_id for question_id in visible_question_ids(session) if question_id in session.answers]
     if not answered_visible:
-        await callback.message.answer("Это начало сценария. Выберите режим в меню.", reply_markup=main_menu())
+        await callback.message.answer("🧭 Это начало сценария. Выберите режим в меню.", reply_markup=main_menu())
         await callback.answer()
         return
 
