@@ -1,0 +1,743 @@
+{
+  "metadata": {
+    "algorithm_version": "2026.04.06",
+    "title": "Upper GI bleeding triage for endoscopy bot",
+    "description": "Deterministic triage flow for variceal versus non-variceal bleeding with endoscopic confirmation."
+  },
+  "modes": [
+    {
+      "id": "new_case",
+      "title": "Новый кейс",
+      "description": "Начать пошаговый клинический опрос."
+    },
+    {
+      "id": "resume_case",
+      "title": "Продолжить кейс",
+      "description": "Вернуться к ранее начатому кейсу."
+    },
+    {
+      "id": "endoscopy_only",
+      "title": "Ввести данные ЭГДС",
+      "description": "Сразу перейти к интерпретации эндоскопических находок."
+    },
+    {
+      "id": "quick_reference",
+      "title": "Посмотреть краткий алгоритм",
+      "description": "Показать краткую памятку по логике бота."
+    }
+  ],
+  "question_order": [
+    "fresh_blood_vomiting",
+    "coffee_ground_vomiting",
+    "melena",
+    "hemodynamic_compromise",
+    "active_bleeding_now",
+    "portal_cavernoma",
+    "portal_hypertension_background",
+    "pediatric_patient",
+    "splenomegaly",
+    "thrombocytopenia",
+    "known_varices",
+    "prior_variceal_bleeding",
+    "prior_banding_or_sclerotherapy",
+    "portosystemic_collaterals",
+    "sudden_onset",
+    "epigastric_pain",
+    "nsaids_or_anticoagulants",
+    "ulcer_history",
+    "retching_before_bleeding",
+    "dyspepsia_before_episode",
+    "endoscopy_available",
+    "endoscopy_finding"
+  ],
+  "questions": [
+    {
+      "id": "fresh_blood_vomiting",
+      "block": "urgency",
+      "prompt": "Есть ли рвота алой кровью?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["hematemesis", "urgent_path", "upper_gi_bleeding"],
+            "scores": {
+              "urgency": 3,
+              "variceal": 2
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ],
+      "hint": "Прямой маркер возможного кровотечения из верхних отделов ЖКТ."
+    },
+    {
+      "id": "coffee_ground_vomiting",
+      "block": "urgency",
+      "prompt": "Есть ли рвота типа \"кофейной гущи\"?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["upper_gi_bleeding", "urgent_path"],
+            "scores": {
+              "urgency": 2,
+              "variceal": 1
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "melena",
+      "block": "urgency",
+      "prompt": "Есть ли черный дегтеобразный стул (мелена)?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["melena", "upper_gi_bleeding", "urgent_path"],
+            "scores": {
+              "urgency": 2,
+              "variceal": 1
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "hemodynamic_compromise",
+      "block": "urgency",
+      "prompt": "Были ли обморок, резкая слабость, выраженное головокружение или признаки значимой кровопотери?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["urgent_path", "hemodynamic_compromise"],
+            "scores": {
+              "urgency": 3
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "active_bleeding_now",
+      "block": "urgency",
+      "prompt": "Продолжается ли кровотечение прямо сейчас?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["urgent_path", "active_bleeding_now"],
+            "scores": {
+              "urgency": 3
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "portal_cavernoma",
+      "block": "portal_hypertension",
+      "prompt": "Есть ли EHPVO / portal cavernoma / тромбоз воротной вены?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["portal_cavernoma", "portal_hypertension"],
+            "scores": {
+              "portal_hypertension": 3,
+              "variceal": 3
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "portal_hypertension_background",
+      "block": "portal_hypertension",
+      "prompt": "Есть ли фон портальной гипертензии: цирроз, хронический гепатит, билиарная патология, аутоиммунный гепатит, болезнь Вильсона?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["portal_hypertension"],
+            "scores": {
+              "portal_hypertension": 2,
+              "variceal": 1
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "pediatric_patient",
+      "block": "portal_hypertension",
+      "prompt": "Пациент детского или подросткового возраста?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["pediatric_patient"]
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "splenomegaly",
+      "block": "portal_hypertension",
+      "prompt": "Есть ли спленомегалия?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["splenomegaly", "portal_hypertension"],
+            "scores": {
+              "portal_hypertension": 1,
+              "variceal": 1
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "thrombocytopenia",
+      "block": "portal_hypertension",
+      "prompt": "Есть ли гиперспленизм или тромбоцитопения?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["thrombocytopenia", "portal_hypertension"],
+            "scores": {
+              "portal_hypertension": 1,
+              "variceal": 1
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "known_varices",
+      "block": "portal_hypertension",
+      "prompt": "Ранее выявлялись варикозные вены пищевода или желудка?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["known_varices"],
+            "scores": {
+              "variceal": 3
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "prior_variceal_bleeding",
+      "block": "variceal_signs",
+      "prompt": "Были ли раньше эпизоды варикозного кровотечения?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["prior_variceal_bleeding"],
+            "scores": {
+              "variceal": 3
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "prior_banding_or_sclerotherapy",
+      "block": "variceal_signs",
+      "prompt": "Проводились ли ранее лигирование или склерозирование?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["prior_banding"],
+            "scores": {
+              "variceal": 1
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "portosystemic_collaterals",
+      "block": "variceal_signs",
+      "prompt": "Есть ли признаки портосистемных коллатералей?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["portosystemic_collaterals", "portal_hypertension"],
+            "scores": {
+              "portal_hypertension": 1,
+              "variceal": 1
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "sudden_onset",
+      "block": "variceal_signs",
+      "prompt": "Кровотечение началось внезапно, без выраженной предшествующей боли?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["sudden_onset"],
+            "scores": {
+              "variceal": 2
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "epigastric_pain",
+      "block": "non_variceal_signs",
+      "prompt": "Есть ли выраженная эпигастральная боль?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["epigastric_pain"],
+            "scores": {
+              "non_variceal": 2
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет",
+          "effects": {
+            "flags": ["pain_absent"],
+            "scores": {
+              "variceal": 1
+            }
+          }
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "nsaids_or_anticoagulants",
+      "block": "non_variceal_signs",
+      "prompt": "Принимает ли пациент НПВС, аспирин или антикоагулянты?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["nsaids_or_anticoagulants"],
+            "scores": {
+              "non_variceal": 2
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "ulcer_history",
+      "block": "non_variceal_signs",
+      "prompt": "Есть ли язвенный анамнез?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["ulcer_history"],
+            "scores": {
+              "non_variceal": 2
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "retching_before_bleeding",
+      "block": "non_variceal_signs",
+      "prompt": "Были ли рвотные позывы перед кровотечением?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["retching_before_bleeding"],
+            "scores": {
+              "non_variceal": 1
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "dyspepsia_before_episode",
+      "block": "non_variceal_signs",
+      "prompt": "Была ли диспепсия до эпизода кровотечения?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["dyspepsia_before_episode"],
+            "scores": {
+              "non_variceal": 1
+            }
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        },
+        {
+          "id": "unknown",
+          "label": "Не знаю"
+        }
+      ]
+    },
+    {
+      "id": "endoscopy_available",
+      "block": "endoscopy",
+      "prompt": "Есть ли уже результат ЭГДС?",
+      "type": "single_choice",
+      "options": [
+        {
+          "id": "yes",
+          "label": "Да",
+          "effects": {
+            "flags": ["endoscopy_available"]
+          }
+        },
+        {
+          "id": "no",
+          "label": "Нет"
+        }
+      ]
+    },
+    {
+      "id": "endoscopy_finding",
+      "block": "endoscopy",
+      "prompt": "Какая эндоскопическая находка наиболее релевантна?",
+      "type": "single_choice",
+      "show_if": {
+        "question_id": "endoscopy_available",
+        "equals": "yes"
+      },
+      "options": [
+        {
+          "id": "active_variceal_bleeding",
+          "label": "Активное кровотечение из варикса",
+          "effects": {
+            "flags": ["confirmed_variceal_source"],
+            "scores": {
+              "endoscopic_certainty": 5
+            }
+          }
+        },
+        {
+          "id": "white_nipple_sign",
+          "label": "White nipple sign",
+          "effects": {
+            "flags": ["confirmed_variceal_source"],
+            "scores": {
+              "endoscopic_certainty": 4
+            }
+          }
+        },
+        {
+          "id": "thrombus_on_varix",
+          "label": "Тромб на вариксе / ВРВП II-III со стигмами",
+          "effects": {
+            "flags": ["confirmed_variceal_source"],
+            "scores": {
+              "endoscopic_certainty": 4
+            }
+          }
+        },
+        {
+          "id": "forrest_ulcer",
+          "label": "Язва Forrest Ia-IIb",
+          "effects": {
+            "flags": ["confirmed_non_variceal_source"],
+            "scores": {
+              "endoscopic_certainty": 4
+            }
+          }
+        },
+        {
+          "id": "mallory_weiss",
+          "label": "Mallory-Weiss",
+          "effects": {
+            "flags": ["confirmed_non_variceal_source"],
+            "scores": {
+              "endoscopic_certainty": 4
+            }
+          }
+        },
+        {
+          "id": "unclear_source",
+          "label": "Источник неясен",
+          "effects": {
+            "flags": ["endoscopy_unclear"]
+          }
+        }
+      ]
+    }
+  ],
+  "scoring": {
+    "thresholds": {
+      "portal_hypertension_present": 2,
+      "high_variceal": 6,
+      "probable_variceal_with_ph": 5,
+      "probable_non_variceal": 4
+    },
+    "derived_rules": [
+      {
+        "id": "pediatric_ehpvo_boost",
+        "when_all_flags": ["pediatric_patient", "portal_cavernoma"],
+        "add_scores": {
+          "variceal": 1
+        },
+        "explanation": "Педиатрический EHPVO усиливает вероятность варикозного источника."
+      },
+      {
+        "id": "spleno_thrombocytopenia_combo",
+        "when_all_flags": ["splenomegaly", "thrombocytopenia"],
+        "add_scores": {
+          "variceal": 1,
+          "portal_hypertension": 1
+        },
+        "explanation": "Спленомегалия с тромбоцитопенией поддерживает портальную гипертензию."
+      },
+      {
+        "id": "portal_cavernoma_known_varices_bleeding_combo",
+        "when_all_flags": ["portal_cavernoma", "known_varices"],
+        "when_any_flags": ["hematemesis", "melena"],
+        "force_path": "high_probable_variceal",
+        "explanation": "Portal cavernoma + известные вариксы + кровотечение = очень высокая вероятность варикозного источника."
+      }
+    ]
+  },
+  "result_templates": {
+    "urgent_prefix": "Экстренный сценарий: требуется немедленная маршрутизация в стационар и срочная эндоскопическая оценка по локальному протоколу.",
+    "high_probable_variceal": {
+      "urgency_level": "экстренно",
+      "probable_source": "варикозный",
+      "next_step": "Срочная госпитализация, стабилизация, ЭГДС в ранние сроки; при подтверждении варикозного источника рассматривать эндоскопическое лигирование как первую линию."
+    },
+    "probable_variceal": {
+      "urgency_level": "срочно",
+      "probable_source": "варикозный",
+      "next_step": "Уточнить эндоскопические данные и признаки портальной гипертензии; при нарастании тревожных признаков перейти в экстренную ветку."
+    },
+    "probable_non_variceal": {
+      "urgency_level": "срочно",
+      "probable_source": "неварикозный",
+      "next_step": "Сфокусироваться на эндоскопическом подтверждении неварикозного источника и стандартной маршрутизации по локальному протоколу."
+    },
+    "mixed_source": {
+      "urgency_level": "срочно",
+      "probable_source": "смешанный / неясный",
+      "next_step": "Требуется эндоскопическое подтверждение источника; до него не считать диагноз окончательным."
+    },
+    "confirmed_variceal": {
+      "urgency_level": "экстренно",
+      "probable_source": "подтвержденный варикозный",
+      "next_step": "Вести как подтвержденное варикозное кровотечение; ориентироваться на локальный протокол и экспертную тактику."
+    },
+    "confirmed_non_variceal": {
+      "urgency_level": "срочно",
+      "probable_source": "подтвержденный неварикозный",
+      "next_step": "Вести как подтвержденный неварикозный источник кровотечения по локальному протоколу."
+    }
+  },
+  "disclaimer": "Алгоритм не заменяет клиническое решение врача, не назначает терапию самостоятельно и требует интерпретации в контексте локальных протоколов."
+}

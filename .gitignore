@@ -1,0 +1,13 @@
+__pycache__/
+.pytest_cache/
+*.py[cod]
+
+.env
+.venv/
+venv/
+
+data/sessions/
+endo-bot-release.tar.gz
+
+*.docx
+*.pptx
