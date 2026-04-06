@@ -1,0 +1,19 @@
+---
+description: Fast server deploy workflow for endo-bot
+alwaysApply: true
+---
+
+# Fast Deploy Workflow
+
+- For this project, prefer the fast git-based deploy path over tarball uploads.
+- Use `python scripts/deploy.py` from the repo root to deploy.
+- The deploy target is the server app checkout at `/opt/endo-bot/app`.
+- The remote deploy entrypoint is `/opt/endo-bot/bin/deploy.sh`.
+- The remote script should:
+  - pull `main` from `https://github.com/Hexttr/endo-bot.git`
+  - reinstall with `pip install -e` only when `pyproject.toml` changes or on first bootstrap
+  - restart `endo-bot.service`
+- After deployment, verify:
+  - `systemctl status endo-bot.service --no-pager`
+  - recent logs from `/opt/endo-bot/shared/logs/`
+- Do not store deploy credentials in tracked files. Keep them in ignored local config such as `deploy.local.json`.

@@ -29,35 +29,65 @@ def main_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
+def post_result_menu() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Новый кейс", callback_data="mode:new_case")],
+            [InlineKeyboardButton(text="Ввести данные ЭГДС", callback_data="mode:endoscopy_only")],
+            [InlineKeyboardButton(text="Краткий алгоритм", callback_data="mode:quick_reference")],
+            [InlineKeyboardButton(text="Главное меню", callback_data="nav:menu")],
+        ]
+    )
+
+
 def question_keyboard(question: dict) -> InlineKeyboardMarkup:
     rows = [
         [InlineKeyboardButton(text=option["label"], callback_data=f"answer:{question['id']}:{option['id']}")]
         for option in question["options"]
     ]
+    rows.append(
+        [
+            InlineKeyboardButton(text="Назад", callback_data="nav:back"),
+            InlineKeyboardButton(text="В меню", callback_data="nav:menu"),
+        ]
+    )
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def next_question(session: CaseSession) -> dict | None:
+def visible_question_ids(session: CaseSession) -> list[str]:
     if session.mode == "endoscopy_only":
         question_ids = ["endoscopy_available", "endoscopy_finding"]
     else:
         question_ids = spec.question_order
+
+    visible_ids: list[str] = []
     for question_id in question_ids:
-        if question_id in session.answers:
-            continue
         question = spec.question_map[question_id]
         show_if = question.get("show_if")
         if show_if and session.answers.get(show_if["question_id"]) != show_if["equals"]:
             continue
-        return question
+        visible_ids.append(question_id)
+    return visible_ids
+
+
+def next_question(session: CaseSession) -> dict | None:
+    for question_id in visible_question_ids(session):
+        if question_id in session.answers:
+            continue
+        return spec.question_map[question_id]
     return None
 
 
 @dispatcher.message(Command("start"))
 async def start(message: Message) -> None:
     await message.answer(
-        "Эндо-Бот помогает пройти детерминированный алгоритм триажа. "
-        "Он не заменяет клиническое решение врача.",
+        "Эндо-Бот помогает эндоскописту быстро пройти структурированный алгоритм триажа.\n\n"
+        "Что умеет бот:\n"
+        "• провести по пошаговому сценарию\n"
+        "• выделить срочность случая\n"
+        "• показать вероятный источник кровотечения\n"
+        "• подсказать следующий шаг\n\n"
+        "Важно: бот не заменяет клиническое решение врача.",
         reply_markup=main_menu(),
     )
 
@@ -67,10 +97,13 @@ async def choose_mode(callback: CallbackQuery) -> None:
     mode = callback.data.split(":", 1)[1]
     if mode == "quick_reference":
         await callback.message.answer(
-            "Краткая логика: сначала экстренность, затем признаки портальной гипертензии, "
-            "варикозные и неварикозные признаки, после чего при наличии ЭГДС приоритет "
-            "переходит к эндоскопическим находкам."
+            "Краткая логика работы бота:\n\n"
+            "1. Сначала оценивается экстренность.\n"
+            "2. Затем собираются признаки портальной гипертензии.\n"
+            "3. После этого бот сопоставляет варикозные и неварикозные признаки.\n"
+            "4. Если есть ЭГДС, приоритет переходит к эндоскопическим находкам."
         )
+        await callback.message.answer("Выберите следующее действие:", reply_markup=post_result_menu())
         await callback.answer()
         return
 
@@ -119,9 +152,17 @@ async def send_next_question(message: Message, session: CaseSession) -> None:
         )
         store.save(session)
         await message.answer(render_result(result))
+        await message.answer("Что хотите сделать дальше?", reply_markup=post_result_menu())
         return
 
-    await message.answer(question["prompt"], reply_markup=question_keyboard(question))
+    question_ids = visible_question_ids(session)
+    current_step = len([question_id for question_id in question_ids if question_id in session.answers]) + 1
+    total_steps = len(question_ids)
+    progress_line = f"Шаг {current_step} из {total_steps}"
+    hint = question.get("hint")
+    hint_block = f"\n\nПочему это важно: {hint}" if hint else ""
+    text = f"{progress_line}\n\n{question['prompt']}{hint_block}"
+    await message.answer(text, reply_markup=question_keyboard(question))
 
 
 @dispatcher.callback_query(F.data.startswith("answer:"))
@@ -139,6 +180,34 @@ async def process_answer(callback: CallbackQuery) -> None:
         "answer_recorded",
         {"question_id": question_id, "answer_id": option_id},
     )
+    store.save(session)
+    await callback.answer()
+    await send_next_question(callback.message, session)
+
+
+@dispatcher.callback_query(F.data == "nav:menu")
+async def return_to_menu(callback: CallbackQuery) -> None:
+    await callback.message.answer("Главное меню:", reply_markup=main_menu())
+    await callback.answer()
+
+
+@dispatcher.callback_query(F.data == "nav:back")
+async def go_back(callback: CallbackQuery) -> None:
+    session = _load_latest_session(callback.from_user.id)
+    if session is None:
+        await callback.message.answer("Активный кейс не найден. Используйте /start.")
+        await callback.answer()
+        return
+
+    answered_visible = [question_id for question_id in visible_question_ids(session) if question_id in session.answers]
+    if not answered_visible:
+        await callback.message.answer("Это начало сценария. Выберите режим в меню.", reply_markup=main_menu())
+        await callback.answer()
+        return
+
+    last_question_id = answered_visible[-1]
+    session.answers.pop(last_question_id, None)
+    _append_audit_event(session, "answer_reverted", {"question_id": last_question_id})
     store.save(session)
     await callback.answer()
     await send_next_question(callback.message, session)

@@ -6,6 +6,7 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
+deploy.local.json
 
 data/sessions/
 endo-bot-release.tar.gz
