@@ -67,7 +67,7 @@ def question_keyboard(question: dict) -> InlineKeyboardMarkup:
 
 def visible_question_ids(session: CaseSession) -> list[str]:
     if session.mode == "endoscopy_only":
-        question_ids = ["endoscopy_available", "endoscopy_finding"]
+        question_ids = ["endoscopy_finding"]
     else:
         question_ids = spec.question_order
 
@@ -170,7 +170,10 @@ async def send_next_question(message: Message, session: CaseSession) -> None:
     question_ids = visible_question_ids(session)
     current_step = len([question_id for question_id in question_ids if question_id in session.answers]) + 1
     total_steps = len(question_ids)
-    progress_line = f"🧭 Шаг {current_step} из {total_steps}"
+    if session.mode == "endoscopy_only":
+        progress_line = "🔬 Режим ЭГДС"
+    else:
+        progress_line = f"🧭 Шаг {current_step} из {total_steps}"
     hint = question.get("hint")
     hint_block = f"\n\n💡 Почему это важно:\n{hint}" if hint else ""
     text = f"{progress_line}\n\n{question['prompt']}{hint_block}"
