@@ -5,6 +5,7 @@ __pycache__/
 .env
 .venv/
 venv/
+*.egg-info/
 
 data/sessions/
 endo-bot-release.tar.gz
